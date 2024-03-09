@@ -1,4 +1,4 @@
-- [SpringBootWeb 请求响应](#springbootweb-请求响应)
+- [SpringBootWeb Controller](#springbootweb-controller)
   - [请求](#请求)
       - [简单参数](#简单参数)
       - [实体对象](#实体对象)
@@ -17,7 +17,7 @@
 
 ---
 
-# SpringBootWeb 请求响应
+# SpringBootWeb Controller
 
 ## 请求
 
