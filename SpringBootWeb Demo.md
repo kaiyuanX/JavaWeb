@@ -1,11 +1,11 @@
-- [SpringBoot 基础](#springboot-基础)
+- [SpringBoot Demo](#springboot-demo)
   - [前言](#前言)
-  - [SpringBootWeb Demo](#springbootweb-demo)
+  - [Demo](#demo)
       - [起步依赖](#起步依赖)
 
 ---
 
-# SpringBoot 基础
+# SpringBoot Demo
 
 ## 前言
 
@@ -18,7 +18,7 @@ Spring 家族旗下这么多的技术，最基础、最核心的是 `SpringFrame
 - 简化配置
 - 快速开发
 
-## SpringBootWeb Demo
+## Demo
 
 需求：浏览器发起请求 `http://localhost:8080/hello` 后，给浏览器返回字符串 “Hello World”
 

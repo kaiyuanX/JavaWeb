@@ -7,7 +7,24 @@
       - [SQL 填充](#sql-填充)
   - [JDBC](#jdbc)
   - [数据库连接池](#数据库连接池)
-  - [lombok](#lombok)
+  - [Mybatis 的 XML 配置文件](#mybatis-的-xml-配置文件)
+- [增删改查](#增删改查)
+  - [日志输入](#日志输入)
+  - [准备](#准备)
+  - [删除](#删除)
+      - [功能实现](#功能实现)
+      - [参数占位符](#参数占位符)
+  - [新增](#新增)
+      - [基本新增](#基本新增)
+      - [主键返回](#主键返回)
+  - [更新](#更新)
+  - [查询](#查询)
+      - [数据封装](#数据封装)
+      - [条件查询](#条件查询)
+- [动态 SQL](#动态-sql)
+  - [if](#if)
+  - [foreach](#foreach)
+  - [sql\&include](#sqlinclude)
 
 ---
 
@@ -215,7 +232,6 @@ public class JdbcTest {
 }
 ```
 
-
 ## 数据库连接池
 
 Mybatis 使用了 “数据库连接池技术”，避免频繁的创建连接、销毁连接而带来的资源浪费 （上节代码的 `// 5. `）
@@ -256,55 +272,383 @@ Mybatis 使用了 “数据库连接池技术”，避免频繁的创建连接�
 
 - 参考官方地址：https://github.com/alibaba/druid/tree/master/druid-spring-boot-starter
 
-## lombok
+## Mybatis 的 XML 配置文件
 
-==介绍==
+官方说明：https://mybatis.net.cn/getting-started.html
 
-Lombok是一个实用的 Java 类库，通过注解来简化臃肿的 Java 代码
+Mybatis 的开发有两种方式：
 
-通过注解自动生成 `构造器 getter/setter equals hashcode toString` 等方法，并可以自动化生成日志变量
+1. 注解
+2. XML
 
-| **注解**            | **作用**                                                      |
-| ------------------- | ------------------------------------------------------------- |
-| @Getter/@Setter     | 为所有的属性提供 get/set 方法                                 |
-| @ToString           | 会给类自动生成易阅读的  toString 方法                         |
-| @EqualsAndHashCode  | 根据类所拥有的非静态字段自动重写 equals 方法和  hashCode 方法 |
-| @Data               | @Getter  + @Setter + @ToString + @EqualsAndHashCode           |
-| @NoArgsConstructor  | 无参的构造器                                                  |
-| @AllArgsConstructor | 除了 static 修饰的字段之外带有各参数的构造器                  |
+使用 Mybatis 的 “注解” 方式，主要是来完成一些简单的增删改查功能
 
-==使用==
+如果需要实现复杂的 SQL 功能，建议使用 XML 来配置映射语句
 
-第 1 步：在 pom.xml 文件中引入依赖
+==XML 映射文件规范==
 
-```xml
-<!-- 在 springboot 的父工程中，已经集成了 lombok 并指定了版本号 -->
-<!-- 故当前引入依赖时不需要指定 version -->
+1. XML 映射文件的名称与 Mapper 接口名称一致，并且将 XML 映射文件和 Mapper 接口放置在相同包下（同包同名）
 
-<dependency>
-    <groupId>org.projectlombok</groupId>
-    <artifactId>lombok</artifactId>
-</dependency>
+2. XML 映射文件的 namespace 属性为 Mapper 接口全限定名一致
+
+3. XML 映射文件中 sql 语句的 id 与 Mapper 接口中的方法名一致，并保持返回类型一致
+
+![](image/2024-03-18-23-00-44.png)
+
+
+- `<select>` 标签用于编写 select 查询语句
+- `resultType` 属性，指的是查询返回的单条记录所封装的类型
+
+==编写 XML 映射文件==
+
+xml 映射文件中的 dtd 约束，直接从 mybatis 官网复制即可
+
+~~~xml
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+  PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="">
+ 
+</mapper>
+~~~
+
+# 增删改查
+
+## 日志输入
+
+借助日志，查看到 sql 语句的执行、执行传递的参数以及执行结果
+
+`application.properties` 文件
+
+```properties
+# 指定 mybatis 输出日志到 Java 控制台\
+
+mybatis.configuration.log-impl=org.apache.ibatis.logging.stdout.StdOutImpl
 ```
 
-第 2 步：在实体类上添加注解
+开启日志之后，运行单元测试，可以看到在控制台中，输出了 SQL 语句信息
+
+## 准备
+
+需求：对 “员工表” 进行增删改查
+
+1. 创建数据库表
+2. 创建一个新的 springboot 工程，引入起步依赖：mybatis、mysql 驱动、lombok
+3. `application.properties` 中引入数据库连接信息
+4. 创建实体类 `Emp`
+5. 创建 Mapper 接口 `EmpMapper`
+
+
+## 删除
+
+#### 功能实现
+
+根据主键删除数据
 
 ~~~java
-import lombok.Data;
+@Mapper
+public interface EmpMapper {
+    /**
+     * 根据id删除数据
+     * @param id    
+     */
+    @Delete("delete from emp where id = #{id}") 
+    public void delete(Integer id);
 
-@Data   // getter方法、setter方法、toString方法、hashCode方法、equals方法
-@NoArgsConstructor  // 无参构造
-@AllArgsConstructor // 全参构造
-public class User {
-    private Integer id;
-    private String name;
-    private Short age;
-    private Short gender;
-    private String phone;
+    // 使用 #{key} 方式获取方法中的参数值
+    // public int delete(); int 返回操作数据库的条目数
 }
 ~~~
 
-==注意事项==
+~~~java
+// 测试
 
-- Lombok 会在编译时，会自动生成对应的 java 代码
-- 使用 lombok 需要安装一个叫 `lombok` 的插件（ IDEA 自带）
+@SpringBootTest
+class SpringbootMybatisCrudApplicationTests {
+    @Autowired
+    private EmpMapper empMapper;
+
+    @Test
+    public void testDel(){
+        empMapper.delete(16);
+    }
+}
+~~~
+
+#### 参数占位符
+
+在 Mybatis 中提供的参数占位符有两种
+
+- `#{...}`
+  - 执行SQL时，会将 `#{…}` 替换为 `?`，生成预编译 SQL，会自动设置参数值
+  - 参数传递，使用 `#{…}`
+
+- `${...}`
+  - 拼接 SQL，存在 SQL 注入问题
+  - 对表名、列表进行动态设置时使用
+
+## 新增
+
+#### 基本新增
+
+```java
+@Mapper
+public interface EmpMapper {
+
+    @Insert("insert into 
+    emp(username, name, gender, image, job, entrydate, dept_id, create_time, update_time) 
+    values (#{username}, #{name}, #{gender}, #{image}, #{job}, #{entrydate}, #{deptId}, #{createTime}, #{updateTime})")
+    public void insert(Emp emp);
+    
+    // #{...} 里面写的名称是对象的属性名
+}
+```
+
+```java
+@SpringBootTest
+class SpringbootMybatisCrudApplicationTests {
+    @Autowired
+    private EmpMapper empMapper;
+
+    @Test
+    public void testInsert(){
+        Emp emp = new Emp();
+        emp.setUsername("tom");
+        emp.setName("汤姆");
+        emp.setImage("1.jpg");
+        emp.setGender((short)1);
+        emp.setJob((short)1);
+        emp.setEntrydate(LocalDate.of(2000,1,1));
+        emp.setCreateTime(LocalDateTime.now());
+        emp.setUpdateTime(LocalDateTime.now());
+        emp.setDeptId(1);
+        empMapper.insert(emp);
+    }
+}
+```
+
+#### 主键返回
+
+~~~java
+@Mapper
+public interface EmpMapper {
+    
+    // 会自动将生成的主键值，赋值给 emp.id
+    @Options(useGeneratedKeys = true, keyProperty = "id")
+    @Insert(...)
+    public void insert(Emp emp);
+}
+~~~
+
+## 更新
+
+```java
+@Mapper
+public interface EmpMapper {
+
+    @Update("update emp set username=#{username}, name=#{name}, 
+    gender=#{gender}, image=#{image}, job=#{job}, entrydate=#{entrydate}, 
+    dept_id=#{deptId}, update_time=#{updateTime} where id=#{id}")
+    public void update(Emp emp);
+    
+}
+```
+
+## 查询
+
+~~~java
+@Mapper
+public interface EmpMapper {
+    @Select("select * from emp where id=#{id}")
+    public Emp getById(Integer id);
+}
+~~~
+
+
+#### 数据封装
+
+左边是 Java 类，右边是数据库表
+
+![](image/2024-03-18-12-03-36.png)
+
+默认可以自动同名字映射，这意味着 `dept_id` 不能自动映射到 `deptId`
+
+解决方案
+
+1. 起别名
+
+    ```java
+    @Select("select dept_id AS deptId from emp where id=#{id}")
+    public Emp getById(Integer id);
+    ```
+
+
+2. 手动结果映射：通过 `@Results, @Result` 进行手动结果映射
+
+    ```java
+    @Results({@Result(column = "dept_id", property = "deptId"),
+            @Result(column = "create_time", property = "createTime"),
+            @Result(column = "update_time", property = "updateTime")})
+    @Select("select dept_id, create_time, update_time from emp where id=#{id}")
+    public Emp getById(Integer id);
+    ```
+
+3. 开启驼峰命名配置
+
+    ```
+    驼峰命名规则：   abc_xyz    =>   abcXyz
+
+    表中字段名：abc_xyz
+    类中属性名：abcXyz
+
+    # 在 application.properties 中添加配置项
+    mybatis.configuration.map-underscore-to-camel-case=true
+    ```
+
+#### 条件查询
+
+- 姓名：要求支持模糊匹配
+- 性别：要求精确匹配
+- 入职时间：要求进行范围查询
+- 根据最后修改时间进行降序排序
+
+```java
+// 1.
+
+@Mapper
+public interface EmpMapper {
+    @Select("select * from emp " +
+            "where name like '%${name}%' " +
+            "and gender = #{gender} " +
+            "and entrydate between #{begin} and #{end} " +
+            "order by update_time desc")
+    public List<Emp> list(String name, Short gender, LocalDate begin, LocalDate end);
+}
+```
+
+~~~java
+// 2. 使用 MySQL 提供的字符串拼接函数：concat
+
+@Mapper
+public interface EmpMapper {
+
+    @Select("select * from emp " +
+            "where name like concat('%',#{name},'%') " +
+            "and gender = #{gender} " +
+            "and entrydate between #{begin} and #{end} " +
+            "order by update_time desc")
+    public List<Emp> list(String name, Short gender, LocalDate begin, LocalDate end);
+
+}
+~~~
+
+
+# 动态 SQL
+
+## if
+
+`<if>`
+- 使用 test 属性进行条件判断，如果条件为 true，则拼接 SQL
+- 使用 `<where>` 标签代替 SQL 语句中的 where 关键字
+  - `<where>` 只会在子元素有内容的情况下才插入 where 子句，而且会自动去除子句的开头的 and 或 or
+- 使用 `<set>` 标签代替 SQL 语句中的 set 关键字
+  - `<set>` 动态在 SQL 语句中插入 set 关键字，并会删掉额外的逗号
+  - 用于 update 语句
+
+~~~xml
+<if test="condition">
+    拼接 sql
+</if>
+~~~
+
+~~~xml
+<select id="..." resultType="...">
+        select * from emp
+        <where>
+             <if test="name != null">
+                 and name like concat('%',#{name},'%')
+             </if>
+             <if test="gender != null">
+                 and gender = #{gender}
+             </if>
+             <if test="begin != null and end != null">
+                 and entrydate between #{begin} and #{end}
+             </if>
+        </where>
+        order by update_time desc
+</select>
+~~~
+
+~~~xml
+<!--更新操作-->
+<update id="...">
+    update emp
+    <!-- 使用 set 标签，代替 update 语句中的 set 关键字 -->
+    <set>
+        <if test="username != null">
+            username=#{username},
+        </if>
+        <if test="name != null">
+            name=#{name},
+        </if>
+        <if test="gender != null">
+            gender=#{gender},
+        </if>
+        <if test="updateTime != null">
+            update_time=#{updateTime}
+        </if>
+    </set>
+    where id=#{id}
+</update>
+~~~
+
+## foreach
+
+~~~java
+// 接口
+@Mapper
+public interface EmpMapper {
+    public void deleteByIds(List<Integer> ids);
+}
+~~~
+
+~~~xml
+<foreach collection="集合名称" item="项" separator="分隔符" 
+         open="遍历开始前拼接的片段" close="遍历结束后拼接的片段">
+</foreach>
+~~~
+
+~~~xml
+<!--删除操作-->
+<delete id="deleteByIds">
+    delete from emp where id in
+    <foreach collection="ids" item="id" separator="," open="(" close=")">
+        #{id}
+    </foreach>
+</delete>
+
+<!-- 拼接结果为 delete from emp where id in (id1,id2...) -->
+~~~
+
+## sql&include
+
+宏定义，提高代码复用性
+
+通过 `<sql>` 标签封装到一个 SQL 片段，然后再通过 `<include>` 标签进行引用
+
+- `<sql>` 定义
+- `<include>` 引用
+- id 和 refid 标识
+
+```xml
+<sql id="xx">
+    ...
+</sql>
+```
+
+```xml
+<select id="..." resultType="...">
+    <include refid="xx"/>
+</select>
+```
