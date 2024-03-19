@@ -6,11 +6,10 @@
 后端
 
 Maven
-Spring Boot Web 基础
+Tomcat
+Spring Boot Web
 MySQL
 Spring Boot Mybatis
-Spring Boot Web 开发
-Spring Boot Web 进阶
 ```
 
 ```java
